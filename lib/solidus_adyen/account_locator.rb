@@ -26,12 +26,12 @@ module SolidusAdyen
     # @param psp_reference [String] the psp reference for the payment
     # @return merchant account [String] the name of the merchant account
     def by_reference(psp_reference)
-      code = Spree::Store.
-        joins(orders: :payments).
-        find_by(spree_payments: { response_code: psp_reference }).
-        try!(:code)
+      store = Spree::Store.
+                joins(orders: :payments).
+                find_by(spree_payments: { response_code: psp_reference })
+      code = store.try!(:code)
 
-      by_store_code(code)
+      by_store_code(code, store)
     end
 
     # If the order belongs to a store, returns the merchant account for that
@@ -40,17 +40,19 @@ module SolidusAdyen
     # @param order [Spree::Order] the order used to find the merchant account
     # @return merchant account [String] the name of the merchant account
     def by_order(order)
-      code = order.store.try!(:code)
-      by_store_code(code)
+      store = order.store
+      code = store.try!(:code)
+      by_store_code(code, store)
     end
 
     # Returns the merchant account for the store if one is provided. Returns
     # the default merchant account otherwise.
     #
     # @param code [String] the store code used to look up the merchant account
+    # @param store [Store] the store used to look up the merchant account
     # @return merchant account [String] the name of the merchant account
-    def by_store_code(code)
-      store_account_map[code] || default_account
+    def by_store_code(code, store)
+      store.try(:adyen_merchant_id).presence || store_account_map[code] || default_account
     end
   end
 end
